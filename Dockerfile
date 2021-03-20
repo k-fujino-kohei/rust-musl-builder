@@ -1,4 +1,4 @@
-# Use Ubuntu 2004 LTS as our base image.
+# Use Ubuntu 20.04 LTS as our base image.
 FROM ubuntu:20.04
 
 # The Rust toolchain to use when building our image.  Set by `hooks/build`.
@@ -122,7 +122,7 @@ RUN echo "Building libpq" && \
 # Install a `git credentials` helper for using GH_USER and GH_TOKEN to access
 # private repositories if desired. We make sure this is configured for root,
 # here, and for the `rust` user below.
-ADD git-credential-ghtoken /usr/local/bin/ghtoken
+COPY git-credential-ghtoken /usr/local/bin/ghtoken
 RUN git config --global credential.https://github.com.helper ghtoken
 
 # Set up our path with all our binary directories, including those for the
@@ -147,7 +147,7 @@ RUN curl https://sh.rustup.rs -sSf | \
         rustup component add clippy && \
     env CARGO_HOME=/opt/rust/cargo \
         rustup target add x86_64-unknown-linux-musl
-ADD cargo-config.toml /opt/rust/cargo/config
+COPY cargo-config.toml /opt/rust/cargo/config
 
 # Set up our environment variables so that we cross-compile using musl-libc by
 # default.
@@ -171,7 +171,9 @@ RUN env CARGO_HOME=/opt/rust/cargo cargo install -f cargo-audit && \
     rm -rf /opt/rust/cargo/registry/
 
 # Allow sudo without a password.
-ADD sudoers /etc/sudoers.d/nopasswd
+COPY sudoers /etc/sudoers.d/nopasswd
+# temp fix (win/wsl/ntfs)
+RUN chmod 0440 /etc/sudoers.d/nopasswd
 
 # Run all further code as user `rust`, create our working directories, install
 # our config file, and set up our credential helper.
