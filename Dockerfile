@@ -9,7 +9,7 @@ ARG TOOLCHAIN=stable
 # - https://www.openssl.org/source/
 #
 # ALSO UPDATE hooks/build!
-ARG OPENSSL_VERSION=1.1.1j
+ARG OPENSSL_VERSION=1.1.1k
 
 # Versions for other dependencies. Here are the places to check for new
 # releases:
@@ -172,8 +172,6 @@ RUN env CARGO_HOME=/opt/rust/cargo cargo install -f cargo-audit && \
 
 # Allow sudo without a password.
 COPY sudoers /etc/sudoers.d/nopasswd
-# temp fix (win/wsl/ntfs)
-RUN chmod 0440 /etc/sudoers.d/nopasswd
 
 # Run all further code as user `rust`, create our working directories, install
 # our config file, and set up our credential helper.
