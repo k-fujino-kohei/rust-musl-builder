@@ -26,7 +26,6 @@ ARG MDBOOK_VERSION=0.4.7
 ARG CARGO_ABOUT_VERSION=0.3.0
 ARG CARGO_DENY_VERSION=0.9.0
 ARG ZLIB_VERSION=1.2.11
-ARG POSTGRESQL_VERSION=11.11
 
 # Make sure we have basic dev tools for building C libraries.  Our goal here is
 # to support the musl-libc builds and Cargo builds needed for a large selection
@@ -54,6 +53,11 @@ RUN apt-get update && \
         pkgconf \
         sudo \
         xutils-dev \
+        clang \
+        libstdc++-10-dev \
+        libxxhash-dev \
+        zlib1g-dev \
+        lld \
         && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     useradd rust --user-group --create-home --shell /bin/bash --groups sudo && \
@@ -106,13 +110,12 @@ RUN echo "Building zlib" && \
     make && make install && \
     rm -r /tmp/*
 
-RUN echo "Building libpq" && \
+RUN echo "Building mold" && \
     cd /tmp && \
-    curl -fLO "https://ftp.postgresql.org/pub/source/v$POSTGRESQL_VERSION/postgresql-$POSTGRESQL_VERSION.tar.gz" && \
-    tar xzf "postgresql-$POSTGRESQL_VERSION.tar.gz" && cd "postgresql-$POSTGRESQL_VERSION" && \
-    CC=musl-gcc CPPFLAGS=-I/usr/local/musl/include LDFLAGS=-L/usr/local/musl/lib ./configure --with-openssl --without-readline --prefix=/usr/local/musl && \
-    cd src/interfaces/libpq && make all-static-lib && make install-lib-static && \
-    cd ../../bin/pg_config && make && make install && \
+    git clone https://github.com/rui314/mold.git && \
+    cd mold && \
+    make -j$(nproc) && \
+    make install && \
     rm -r /tmp/*
 
 # (Please feel free to submit pull requests for musl-libc builds of other C
@@ -154,7 +157,6 @@ COPY cargo-config.toml /opt/rust/cargo/config
 ENV X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/ \
     X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_STATIC=1 \
     PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1 \
-    PG_CONFIG_X86_64_UNKNOWN_LINUX_GNU=/usr/bin/pg_config \
     PKG_CONFIG_ALLOW_CROSS=true \
     PKG_CONFIG_ALL_STATIC=true \
     LIBZ_SYS_STATIC=1 \
@@ -168,6 +170,7 @@ ENV X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/ \
 RUN env CARGO_HOME=/opt/rust/cargo cargo install -f cargo-audit && \
     env CARGO_HOME=/opt/rust/cargo cargo install -f cargo-deb && \
     env CARGO_HOME=/opt/rust/cargo cargo install -f mdbook-graphviz && \
+    env CARGO_HOME=/opt/rust/cargo cargo install -f cargo-chef && \
     rm -rf /opt/rust/cargo/registry/
 
 # Allow sudo without a password.
